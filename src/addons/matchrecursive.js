@@ -6,21 +6,21 @@
 
 export default (XRegExp) => {
 
-    /**
+  /**
      * Returns a match detail object composed of the provided values.
      *
      * @private
      */
-    function row(name, value, start, end) {
-        return {
-            name,
-            value,
-            start,
-            end
-        };
-    }
+  function row(name, value, start, end) {
+    return {
+      name,
+      value,
+      start,
+      end,
+    };
+  }
 
-    /**
+  /**
      * Returns an array of match strings between outermost left and right delimiters, or an array of
      * objects with detailed match parts and position data. An error is thrown if delimiters are
      * unbalanced within the data.
@@ -70,128 +70,128 @@ export default (XRegExp) => {
      * XRegExp.matchRecursive(str, '<', '>', 'gy');
      * // -> ['1', '<<2>>', '3']
      */
-    XRegExp.matchRecursive = (str, left, right, flags, options) => {
-        flags = flags || '';
-        options = options || {};
-        const global = flags.includes('g');
-        const sticky = flags.includes('y');
-        // Flag `y` is controlled internally
-        const basicFlags = flags.replace(/y/g, '');
-        let {escapeChar} = options;
-        const vN = options.valueNames;
-        const output = [];
-        let openTokens = 0;
-        let delimStart = 0;
-        let delimEnd = 0;
-        let lastOuterEnd = 0;
-        let outerStart;
-        let innerStart;
-        let leftMatch;
-        let rightMatch;
-        let esc;
-        left = XRegExp(left, basicFlags);
-        right = XRegExp(right, basicFlags);
+  XRegExp.matchRecursive = (str, left, right, flags, options) => {
+    flags = flags || '';
+    options = options || {};
+    const global = flags.includes('g');
+    const sticky = flags.includes('y');
+    // Flag `y` is controlled internally
+    const basicFlags = flags.replace(/y/g, '');
+    let {escapeChar} = options;
+    const vN = options.valueNames;
+    const output = [];
+    let openTokens = 0;
+    let delimStart = 0;
+    let delimEnd = 0;
+    let lastOuterEnd = 0;
+    let outerStart;
+    let innerStart;
+    let leftMatch;
+    let rightMatch;
+    let esc;
+    left = XRegExp(left, basicFlags);
+    right = XRegExp(right, basicFlags);
 
-        if (escapeChar) {
-            if (escapeChar.length > 1) {
-                throw new Error('Cannot use more than one escape character');
-            }
-            escapeChar = XRegExp.escape(escapeChar);
-            // Example of concatenated `esc` regex:
-            // `escapeChar`: '%'
-            // `left`: '<'
-            // `right`: '>'
-            // Regex is: /(?:%[\S\s]|(?:(?!<|>)[^%])+)+/
-            esc = new RegExp(
-                `(?:${escapeChar}[\\S\\s]|(?:(?!${
-                    // Using `XRegExp.union` safely rewrites backreferences in `left` and `right`.
-                    // Intentionally not passing `basicFlags` to `XRegExp.union` since any syntax
-                    // transformation resulting from those flags was already applied to `left` and
-                    // `right` when they were passed through the XRegExp constructor above.
-                    XRegExp.union([left, right], '', {conjunction: 'or'}).source
-                })[^${escapeChar}])+)+`,
-                // Flags `gy` not needed here
-                flags.replace(/[^imu]+/g, '')
-            );
+    if (escapeChar) {
+      if (escapeChar.length > 1) {
+        throw new Error('Cannot use more than one escape character');
+      }
+      escapeChar = XRegExp.escape(escapeChar);
+      // Example of concatenated `esc` regex:
+      // `escapeChar`: '%'
+      // `left`: '<'
+      // `right`: '>'
+      // Regex is: /(?:%[\S\s]|(?:(?!<|>)[^%])+)+/
+      esc = new RegExp(
+        `(?:${escapeChar}[\\S\\s]|(?:(?!${
+          // Using `XRegExp.union` safely rewrites backreferences in `left` and `right`.
+          // Intentionally not passing `basicFlags` to `XRegExp.union` since any syntax
+          // transformation resulting from those flags was already applied to `left` and
+          // `right` when they were passed through the XRegExp constructor above.
+          XRegExp.union([left, right], '', {conjunction: 'or'}).source
+        })[^${escapeChar}])+)+`,
+        // Flags `gy` not needed here
+        flags.replace(/[^imu]+/g, '')
+      );
+    }
+
+    while (true) {
+      // If using an escape character, advance to the delimiter's next starting position,
+      // skipping any escaped characters in between
+      if (escapeChar) {
+        delimEnd += (XRegExp.exec(str, esc, delimEnd, 'sticky') || [''])[0].length;
+      }
+      leftMatch = XRegExp.exec(str, left, delimEnd);
+      rightMatch = XRegExp.exec(str, right, delimEnd);
+      // Keep the leftmost match only
+      if (leftMatch && rightMatch) {
+        if (leftMatch.index <= rightMatch.index) {
+          rightMatch = null;
+        } else {
+          leftMatch = null;
         }
-
-        while (true) {
-            // If using an escape character, advance to the delimiter's next starting position,
-            // skipping any escaped characters in between
-            if (escapeChar) {
-                delimEnd += (XRegExp.exec(str, esc, delimEnd, 'sticky') || [''])[0].length;
-            }
-            leftMatch = XRegExp.exec(str, left, delimEnd);
-            rightMatch = XRegExp.exec(str, right, delimEnd);
-            // Keep the leftmost match only
-            if (leftMatch && rightMatch) {
-                if (leftMatch.index <= rightMatch.index) {
-                    rightMatch = null;
-                } else {
-                    leftMatch = null;
-                }
-            }
-            // Paths (LM: leftMatch, RM: rightMatch, OT: openTokens):
-            // LM | RM | OT | Result
-            // 1  | 0  | 1  | loop
-            // 1  | 0  | 0  | loop
-            // 0  | 1  | 1  | loop
-            // 0  | 1  | 0  | throw
-            // 0  | 0  | 1  | throw
-            // 0  | 0  | 0  | break
-            // The paths above don't include the sticky mode special case. The loop ends after the
-            // first completed match if not `global`.
-            if (leftMatch || rightMatch) {
-                delimStart = (leftMatch || rightMatch).index;
-                delimEnd = delimStart + (leftMatch || rightMatch)[0].length;
-            } else if (!openTokens) {
-                break;
-            }
-            if (sticky && !openTokens && delimStart > lastOuterEnd) {
-                break;
-            }
-            if (leftMatch) {
-                if (!openTokens) {
-                    outerStart = delimStart;
-                    innerStart = delimEnd;
-                }
-                ++openTokens;
-            } else if (rightMatch && openTokens) {
-                if (!--openTokens) {
-                    if (vN) {
-                        if (vN[0] && outerStart > lastOuterEnd) {
-                            output.push(row(vN[0], str.slice(lastOuterEnd, outerStart), lastOuterEnd, outerStart));
-                        }
-                        if (vN[1]) {
-                            output.push(row(vN[1], str.slice(outerStart, innerStart), outerStart, innerStart));
-                        }
-                        if (vN[2]) {
-                            output.push(row(vN[2], str.slice(innerStart, delimStart), innerStart, delimStart));
-                        }
-                        if (vN[3]) {
-                            output.push(row(vN[3], str.slice(delimStart, delimEnd), delimStart, delimEnd));
-                        }
-                    } else {
-                        output.push(str.slice(innerStart, delimStart));
-                    }
-                    lastOuterEnd = delimEnd;
-                    if (!global) {
-                        break;
-                    }
-                }
-            } else {
-                throw new Error('Unbalanced delimiter found in string');
-            }
-            // If the delimiter matched an empty string, avoid an infinite loop
-            if (delimStart === delimEnd) {
-                ++delimEnd;
-            }
+      }
+      // Paths (LM: leftMatch, RM: rightMatch, OT: openTokens):
+      // LM | RM | OT | Result
+      // 1  | 0  | 1  | loop
+      // 1  | 0  | 0  | loop
+      // 0  | 1  | 1  | loop
+      // 0  | 1  | 0  | throw
+      // 0  | 0  | 1  | throw
+      // 0  | 0  | 0  | break
+      // The paths above don't include the sticky mode special case. The loop ends after the
+      // first completed match if not `global`.
+      if (leftMatch || rightMatch) {
+        delimStart = (leftMatch || rightMatch).index;
+        delimEnd = delimStart + (leftMatch || rightMatch)[0].length;
+      } else if (!openTokens) {
+        break;
+      }
+      if (sticky && !openTokens && delimStart > lastOuterEnd) {
+        break;
+      }
+      if (leftMatch) {
+        if (!openTokens) {
+          outerStart = delimStart;
+          innerStart = delimEnd;
         }
-
-        if (global && !sticky && vN && vN[0] && str.length > lastOuterEnd) {
-            output.push(row(vN[0], str.slice(lastOuterEnd), lastOuterEnd, str.length));
+        ++openTokens;
+      } else if (rightMatch && openTokens) {
+        if (!--openTokens) {
+          if (vN) {
+            if (vN[0] && outerStart > lastOuterEnd) {
+              output.push(row(vN[0], str.slice(lastOuterEnd, outerStart), lastOuterEnd, outerStart));
+            }
+            if (vN[1]) {
+              output.push(row(vN[1], str.slice(outerStart, innerStart), outerStart, innerStart));
+            }
+            if (vN[2]) {
+              output.push(row(vN[2], str.slice(innerStart, delimStart), innerStart, delimStart));
+            }
+            if (vN[3]) {
+              output.push(row(vN[3], str.slice(delimStart, delimEnd), delimStart, delimEnd));
+            }
+          } else {
+            output.push(str.slice(innerStart, delimStart));
+          }
+          lastOuterEnd = delimEnd;
+          if (!global) {
+            break;
+          }
         }
+      } else {
+        throw new Error('Unbalanced delimiter found in string');
+      }
+      // If the delimiter matched an empty string, avoid an infinite loop
+      if (delimStart === delimEnd) {
+        ++delimEnd;
+      }
+    }
 
-        return output;
-    };
+    if (global && !sticky && vN && vN[0] && str.length > lastOuterEnd) {
+      output.push(row(vN[0], str.slice(lastOuterEnd), lastOuterEnd, str.length));
+    }
+
+    return output;
+  };
 };

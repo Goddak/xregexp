@@ -1,12 +1,12 @@
 if (typeof global === 'undefined') {
-    global = window;
+  global = window;
 } else {
-    global.XRegExp = require('../../xregexp-all');
+  global.XRegExp = require('../../xregexp-all');
 }
 
 // Ensure that all opt-in features are disabled when each spec starts
 global.disableOptInFeatures = function() {
-    XRegExp.uninstall('namespacing astral');
+  XRegExp.uninstall('namespacing astral');
 };
 
 // Property name used for extended regex instance data
@@ -18,7 +18,7 @@ global.hasNativeU = XRegExp._hasNativeFlag('u');
 global.hasNativeY = XRegExp._hasNativeFlag('y');
 // Check for strict mode support
 global.hasStrictMode = (function() {
-    'use strict';
+  'use strict';
 
-    return !this;
+  return !this;
 }());

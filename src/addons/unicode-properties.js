@@ -9,7 +9,7 @@ import properties from '../../tools/output/properties';
 
 export default (XRegExp) => {
 
-    /**
+  /**
      * Adds properties to meet the UTS #18 Level 1 RL1.2 requirements for Unicode regex support. See
      * <http://unicode.org/reports/tr18/#RL1.2>. Following are definitions of these properties from
      * UAX #44 <http://unicode.org/reports/tr44/>:
@@ -48,19 +48,19 @@ export default (XRegExp) => {
      * @requires XRegExp, Unicode Base
      */
 
-    if (!XRegExp.addUnicodeData) {
-        throw new ReferenceError('Unicode Base must be loaded before Unicode Properties');
-    }
+  if (!XRegExp.addUnicodeData) {
+    throw new ReferenceError('Unicode Base must be loaded before Unicode Properties');
+  }
 
-    const unicodeData = properties;
+  const unicodeData = properties;
 
-    // Add non-generated data
-    unicodeData.push({
-        name: 'Assigned',
-        // Since this is defined as the inverse of Unicode category Cn (Unassigned), the Unicode
-        // Categories addon is required to use this property
-        inverseOf: 'Cn'
-    });
+  // Add non-generated data
+  unicodeData.push({
+    name:      'Assigned',
+    // Since this is defined as the inverse of Unicode category Cn (Unassigned), the Unicode
+    // Categories addon is required to use this property
+    inverseOf: 'Cn',
+  });
 
-    XRegExp.addUnicodeData(unicodeData);
+  XRegExp.addUnicodeData(unicodeData);
 };

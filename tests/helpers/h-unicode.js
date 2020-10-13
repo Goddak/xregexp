@@ -1,5 +1,5 @@
 if (typeof global === 'undefined') {
-    global = window;
+  global = window;
 }
 
 /*
@@ -7,45 +7,45 @@ if (typeof global === 'undefined') {
  * should or should not be matched.
  */
 global.testUnicodeToken = function(name, options) {
-    var pattern = '^\\p{' + name + '}$';
-    var negated = '^\\P{' + name + '}$';
-    var astralRegex = XRegExp(pattern, 'A');
-    var negatedAstralRegex = XRegExp(negated, 'A');
-    var bmpRegex;
-    var negatedBmpRegex;
-    var isBmpChar;
+  var pattern = '^\\p{' + name + '}$';
+  var negated = '^\\P{' + name + '}$';
+  var astralRegex = XRegExp(pattern, 'A');
+  var negatedAstralRegex = XRegExp(negated, 'A');
+  var bmpRegex;
+  var negatedBmpRegex;
+  var isBmpChar;
 
-    if (options.isAstralOnly) {
-        expect(function() {XRegExp(pattern);}).toThrowError(SyntaxError);
-        expect(function() {XRegExp(negated);}).toThrowError(SyntaxError);
-    } else {
-        bmpRegex = XRegExp(pattern);
-        negatedBmpRegex = XRegExp(negated);
-    }
+  if (options.isAstralOnly) {
+    expect(function() {XRegExp(pattern);}).toThrowError(SyntaxError);
+    expect(function() {XRegExp(negated);}).toThrowError(SyntaxError);
+  } else {
+    bmpRegex = XRegExp(pattern);
+    negatedBmpRegex = XRegExp(negated);
+  }
 
-    if (options.valid) {
-        options.valid.forEach(function(chr) {
-            expect(astralRegex.test(chr)).toBe(true);
-            expect(negatedAstralRegex.test(chr)).toBe(false);
-            if (!options.isAstralOnly) {
-                isBmpChar = chr.length === 1; //chr.codePointAt(0) === chr.charCodeAt(0)
-                expect(bmpRegex.test(chr)).toBe(isBmpChar);
-                expect(negatedBmpRegex.test(chr)).toBe(false);
-            }
-        });
-    }
+  if (options.valid) {
+    options.valid.forEach(function(chr) {
+      expect(astralRegex.test(chr)).toBe(true);
+      expect(negatedAstralRegex.test(chr)).toBe(false);
+      if (!options.isAstralOnly) {
+        isBmpChar = chr.length === 1; //chr.codePointAt(0) === chr.charCodeAt(0)
+        expect(bmpRegex.test(chr)).toBe(isBmpChar);
+        expect(negatedBmpRegex.test(chr)).toBe(false);
+      }
+    });
+  }
 
-    if (options.invalid) {
-        options.invalid.forEach(function(chr) {
-            expect(astralRegex.test(chr)).toBe(false);
-            expect(negatedAstralRegex.test(chr)).toBe(true);
-            if (!options.isAstralOnly) {
-                isBmpChar = chr.length === 1; //chr.codePointAt(0) === chr.charCodeAt(0)
-                expect(bmpRegex.test(chr)).toBe(false);
-                expect(negatedBmpRegex.test(chr)).toBe(isBmpChar);
-            }
-        });
-    }
+  if (options.invalid) {
+    options.invalid.forEach(function(chr) {
+      expect(astralRegex.test(chr)).toBe(false);
+      expect(negatedAstralRegex.test(chr)).toBe(true);
+      if (!options.isAstralOnly) {
+        isBmpChar = chr.length === 1; //chr.codePointAt(0) === chr.charCodeAt(0)
+        expect(bmpRegex.test(chr)).toBe(false);
+        expect(negatedBmpRegex.test(chr)).toBe(isBmpChar);
+      }
+    });
+  }
 };
 
 
@@ -72,17 +72,17 @@ global.testUnicodeToken = function(name, options) {
  * // Unlike String.fromCharCode, this correctly handles code points above 0xFFFF
  */
 if (!String.fromCodePoint) {
-    String.fromCodePoint = function() {
-        var chars = [],
-            i, offset, point, units;
-        for (i = 0; i < arguments.length; ++i) {
-            point = arguments[i];
-            offset = point - 0x10000;
-            units = point > 0xFFFF ? [0xD800 + (offset >> 10), 0xDC00 + (offset & 0x3FF)] : [point];
-            chars.push(String.fromCharCode.apply(null, units));
-        }
-        return chars.join("");
-    };
+  String.fromCodePoint = function() {
+    var chars = [],
+      i, offset, point, units;
+    for (i = 0; i < arguments.length; ++i) {
+      point = arguments[i];
+      offset = point - 0x10000;
+      units = point > 0xFFFF ? [0xD800 + (offset >> 10), 0xDC00 + (offset & 0x3FF)] : [point];
+      chars.push(String.fromCharCode.apply(null, units));
+    }
+    return chars.join("");
+  };
 }
 
 /**
